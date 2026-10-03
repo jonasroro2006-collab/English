@@ -1,4 +1,4 @@
-# EnglishRORO V1
+# English Jonas V1
 
 Application PWA d'apprentissage de l'anglais A1→C2, conçue pour fonctionner hors ligne.
 

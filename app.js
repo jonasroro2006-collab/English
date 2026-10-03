@@ -1,4 +1,4 @@
-/* EnglishRoro — V1
+/* English Jonas — V1
    Application éducative hors ligne. Les données de progression sont stockées localement.
 */
 const LEVELS=[
