@@ -19,6 +19,7 @@
   <header class="topbar">
     <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
     <div class="brand"><span class="brand-mark">JR</span><span>English <span>Jonas</span></span></div>
+    <button class="btn small install-btn" id="installTop" hidden>📲 Installer</button>
     <div class="top-stats">
       <span title="Série">🔥 <b id="streakTop">0</b></span>
       <span title="XP">⚡ <b id="xpTop">0</b></span>
@@ -39,6 +40,7 @@
       <button data-screen="dictionary" class="nav-item">📖 <span>Dictionnaire</span></button>
       <button data-screen="settings" class="nav-item">⚙️ <span>Paramètres</span></button>
     </nav>
+    <button class="btn full install-btn" id="installSide" style="margin:18px 0 0" hidden>📲 Télécharger l'application</button>
     <div class="offline-card"><span>●</span> Mode hors ligne actif<br><small>Tes données restent sur cet appareil.</small></div>
   </aside>
   <div id="overlay" class="overlay"></div>
@@ -48,6 +50,25 @@
   <div id="toast" class="toast"></div>
 </div>
 <noscript>English Jonas a besoin de JavaScript pour fonctionner.</noscript>
+<script>
+(function(){
+  if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("service-worker.js").catch(function(){})})}
+  var deferred=null;
+  var standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  function show(v){document.querySelectorAll('.install-btn').forEach(function(b){b.hidden=!v})}
+  function toast(m){var t=document.getElementById('toast');if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},6000)}
+  if(!standalone){show(true)}
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferred=e;show(true)});
+  window.addEventListener('appinstalled',function(){deferred=null;show(false);toast('Application installée ✅')});
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('.install-btn');if(!b)return;
+    if(deferred){deferred.prompt();deferred.userChoice.finally(function(){deferred=null})}
+    else if(ios){toast("Sur iPhone : touche Partager (⬆️) puis « Sur l'écran d'accueil »")}
+    else{toast("Ouvre le menu du navigateur (⋮) puis « Installer l'application » ou « Ajouter à l'écran d'accueil »")}
+  });
+})();
+</script>
 <script src="data.js"></script>
 <script src="app.js"></script>
 </body>

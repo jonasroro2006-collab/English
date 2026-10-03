@@ -23,3 +23,6 @@ button,input{font:inherit}button{cursor:pointer}.topbar{height:66px;background:#
 .dark .btn.gray{background:#2a3745;color:#c5d1dc;border-bottom-color:#1d2833}
 .dark .search input{background:var(--card);color:var(--ink)}
 .dark .back{color:var(--ink)}
+
+/* Bouton installer */
+.install-btn[hidden]{display:none!important}#installTop{margin-left:auto}#installTop+.top-stats{margin-left:0}
