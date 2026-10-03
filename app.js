@@ -4,6 +4,7 @@
 */
 const KEY="englishJonasState", OLD_KEY="englishMasterState";
 const PASS=3, MAX_HEARTS=5, HEART_MS=20*60*1000;
+const PLACE_N=6, PLACE_PASS=4; // test de niveau : 6 questions par niveau, 4 bonnes réponses pour valider
 const $=id=>document.getElementById(id);
 
 /* ---------- État ---------- */
@@ -11,7 +12,7 @@ const defaults=()=>({
  xp:0, hearts:MAX_HEARTS, heartsAt:null, streak:0, lastDay:null,
  completed:{}, learnedWords:[], dailyGoal:20, daily:{date:null,correct:0},
  dark:false, sound:true, currentLevel:"A1", unlocked:["A1"],
- stats:{lessons:0,correct:0,answered:0}, achievements:[]
+ stats:{lessons:0,correct:0,answered:0}, achievements:[], placement:null
 });
 
 function loadState(){
@@ -72,7 +73,8 @@ const totalLessons=()=>Object.values(LESSONS).reduce((s,a)=>s+a.length,0);
 const totalProgress=()=>Math.round(totalCompleted()/totalLessons()*100);
 function levelProgress(id){const a=LESSONS[id]||[];return Math.round(a.filter((_,i)=>state.completed[id+"-"+i]).length/(a.length||1)*100)}
 function nextLesson(){
- for(const l of LEVELS){
+ const start=Math.max(0,LEVELS.findIndex(l=>l.id===state.currentLevel));
+ for(const l of LEVELS.slice(start)){
   if(!state.unlocked.includes(l.id))continue;
   const i=LESSONS[l.id].findIndex((_,k)=>!state.completed[l.id+"-"+k]);
   if(i>=0)return{id:l.id,i};
@@ -161,7 +163,7 @@ function render(){
  regenHearts();expireStreak();header();
  document.documentElement.classList.toggle("dark",!!state.dark);
  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=state.dark?"#0f1720":"#58cc02";
- const views={home:homeView,learn:learnView,review:reviewView,practice:practiceView,stats:statsView,achievements:achievementsView,dictionary:dictionaryView,settings:settingsView};
+ const views={home:homeView,learn:learnView,review:reviewView,practice:practiceView,placement:placementView,stats:statsView,achievements:achievementsView,dictionary:dictionaryView,settings:settingsView};
  $("main").innerHTML=(views[screen]||homeView)();
  bindDynamic();
 }
@@ -193,6 +195,11 @@ function practiceView(){
  return `<div class="section-title"><div><h2>🎯 Entraînement</h2><div class="muted">Un bon score (70 % ou plus) te rend une vie ❤️.</div></div></div>
  <div class="level-grid"><div class="card level-card"><div class="level-code">⚡ RAPIDE</div><h3>10 questions</h3><p>Questions mélangées de tes leçons validées.</p><button class="btn blue" data-practice="quick">Jouer</button></div><div class="card level-card"><div class="level-code">📖 VOCABULAIRE</div><h3>Mots essentiels</h3><p>Traduis et reconnais les mots utiles.</p><button class="btn purple" data-practice="vocab">Jouer</button></div><div class="card level-card"><div class="level-code">🧠 GRAMMAIRE</div><h3>Défi grammaire</h3><p>Consolide les règles que tu as étudiées.</p><button class="btn" data-practice="grammar">Jouer</button></div></div>`;
 }
+function placementView(){
+ const p=state.placement;
+ return `<div class="section-title"><div><h2>📝 Test de niveau</h2><div class="muted">${LEVELS.length*PLACE_N} questions (${PLACE_N} par niveau, de A1 à C2), environ 8 minutes. Aucune vie perdue.</div></div></div>
+ <div class="card progress-card">${p?`<p><b>Dernier résultat : ${esc(p.level)}</b> <span class="muted">(${esc(p.date)}${p.total?` · ${p.score}/${p.total}`:""})</span></p>`:""}<p class="muted">Réponds sans chercher : le test choisit ton point de départ. Il s'arrête dès qu'un niveau n'est pas validé (${PLACE_PASS}/${PLACE_N} minimum).</p><button class="btn" data-placement>${p?"Refaire le test":"Commencer le test"}</button></div>`;
+}
 function statsView(){
  const acc=state.stats.answered?Math.round(state.stats.correct/state.stats.answered*100):0;
  return `<div class="section-title"><h2>📊 Ma progression</h2></div><div class="mini-stats"><div class="card mini-stat"><strong>${state.xp}</strong><span>XP total</span></div><div class="card mini-stat"><strong>${acc}%</strong><span>Réussite</span></div><div class="card mini-stat"><strong>${totalProgress()}%</strong><span>Parcours</span></div></div><div class="section-title"><h2>Progression par niveau</h2></div><div class="lesson-list">${LEVELS.map(l=>`<div class="card progress-card"><div style="display:flex;justify-content:space-between"><b>${l.id} — ${esc(l.name)}</b><b>${levelProgress(l.id)}%</b></div><div class="progress-bar" style="margin-top:10px"><i style="width:${levelProgress(l.id)}%"></i></div></div>`).join("")}</div>`;
@@ -222,6 +229,7 @@ function bindDynamic(){
  });
  document.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>startLesson(...b.dataset.lesson.split("|")));
  document.querySelectorAll("[data-practice]").forEach(b=>b.onclick=()=>startPractice(b.dataset.practice));
+ document.querySelectorAll("[data-placement]").forEach(b=>b.onclick=startPlacement);
  document.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>{state[b.dataset.toggle]=!state[b.dataset.toggle];save();render()});
  const ds=$("dictSearch");if(ds){const run=()=>{$("dictResults").innerHTML=wordRows(ds.value)};ds.oninput=run;$("dictBtn").onclick=run}
  const reset=document.querySelector("[data-reset]");
@@ -252,30 +260,67 @@ function startPractice(mode){
  session={kind:"practice",mode,title:PRACTICE_TITLES[mode]||"Entraînement",questions:qs,index:0,score:0,back:mode==="review"?"review":"practice"};
  answered=false;renderQuestion();
 }
+function startPlacement(){
+ const qs=[];
+ LEVELS.forEach(l=>{
+  const pool=new Map();
+  LESSONS[l.id].forEach(L=>L.q.forEach(q=>{const k=q[0]+"|"+q[1];if(!pool.has(k))pool.set(k,{...mkQ(q,[],L.title),level:l.id})}));
+  shuffle([...pool.values()]).slice(0,PLACE_N).forEach(q=>qs.push(q));
+ });
+ session={kind:"placement",title:"Test de niveau",questions:qs,index:0,score:0,byLevel:{},back:"placement"};
+ answered=false;renderQuestion();
+}
 function renderQuestion(){
  const s=session,q=s.questions[s.index],n=s.questions.length;
- $("main").innerHTML=`<div class="lesson-screen"><div class="lesson-head"><button class="back" id="backBtn">← Retour</button><div class="lesson-progress"><i style="width:${s.index/n*100}%"></i></div><span class="heartbar">❤️ <b id="qHearts">${state.hearts}</b></span></div><div class="card quiz-card"><div class="question-type">${s.kind==="lesson"?"Leçon":"Entraînement"} • ${esc(s.title)}</div><h2>${esc(q.p)}</h2><div class="options">${q.opts.map((o,j)=>`<button class="option" data-answer="${j}">${esc(o)}</button>`).join("")}</div><div id="explain"></div><div class="quiz-foot"><span>${s.index+1}/${n}</span><button class="btn" id="nextBtn" style="display:none">Continuer →</button></div></div></div>`;
+ $("main").innerHTML=`<div class="lesson-screen"><div class="lesson-head"><button class="back" id="backBtn">← Retour</button><div class="lesson-progress"><i style="width:${s.index/n*100}%"></i></div>${s.kind==="placement"?"":`<span class="heartbar">❤️ <b id="qHearts">${state.hearts}</b></span>`}</div><div class="card quiz-card"><div class="question-type">${s.kind==="placement"?"Test de niveau":(s.kind==="lesson"?"Leçon":"Entraînement")+" • "+esc(s.title)}</div><h2>${esc(q.p)}</h2><div class="options">${q.opts.map((o,j)=>`<button class="option" data-answer="${j}">${esc(o)}</button>`).join("")}</div><div id="explain"></div><div class="quiz-foot"><span>${s.index+1}/${n}</span><button class="btn" id="nextBtn" style="display:none">Continuer →</button></div></div></div>`;
  $("backBtn").onclick=()=>setScreen(s.back);
  document.querySelectorAll("[data-answer]").forEach(b=>b.onclick=()=>onAnswer(Number(b.dataset.answer)));
 }
 function onAnswer(j){
  if(answered)return;answered=true;
- const s=session,q=s.questions[s.index],ok=j===q.a;
- state.stats.answered++;updateStreak();
- if(ok){s.score++;state.stats.correct++;state.xp+=10;dailyCorrect();state.daily.correct++;toast("+10 XP ⚡")}
- else{loseHeart();toast("Pas grave ! Relis l'explication.")}
+ const s=session,q=s.questions[s.index],ok=j===q.a, place=s.kind==="placement";
+ if(place){
+  if(ok){s.score++;s.byLevel[q.level]=(s.byLevel[q.level]||0)+1}
+ }else{
+  state.stats.answered++;updateStreak();
+  if(ok){s.score++;state.stats.correct++;state.xp+=10;dailyCorrect();state.daily.correct++;toast("+10 XP ⚡")}
+  else{loseHeart();toast("Pas grave ! Relis l'explication.")}
+ }
  beep(ok);save();header();
  document.querySelectorAll(".option").forEach((el,k)=>{el.classList.add("locked");if(k===q.a)el.classList.add("correct");else if(k===j)el.classList.add("wrong")});
- $("qHearts").textContent=state.hearts;
+ if(!place)$("qHearts").textContent=state.hearts;
  const note=q.notes.length?`<br><small>${q.notes.map(esc).join(" • ")}</small>`:"";
  $("explain").innerHTML=`<div class="explain"><b>${ok?"✅ Bonne réponse !":"💡 La bonne réponse : "+esc(q.opts[q.a])}</b>${note}</div>`;
  const next=$("nextBtn");next.style.display="inline-block";
  next.onclick=()=>{
-  if(!ok&&state.hearts<=0){session=null;return canPlay()}
+  if(!place&&!ok&&state.hearts<=0){session=null;return canPlay()}
   s.index++;answered=false;
+  if(place){
+   const done=s.index>=s.questions.length, newLevel=done||s.questions[s.index].level!==q.level;
+   if(done||(newLevel&&(s.byLevel[q.level]||0)<PLACE_PASS))return finishPlacement();
+   return renderQuestion();
+  }
   if(s.index>=s.questions.length)return s.kind==="lesson"?finishLesson():finishPractice();
   renderQuestion();
  };
+}
+function finishPlacement(){
+ const s=session;let top=0;
+ for(let k=0;k<LEVELS.length;k++){if((s.byLevel[LEVELS[k].id]||0)>=PLACE_PASS)top=k;else break}
+ const res=LEVELS[top], asked={};
+ s.questions.slice(0,s.index+1).forEach(q=>asked[q.level]=(asked[q.level]||0)+1);
+ const total=s.index+1>s.questions.length?s.questions.length:s.index;
+ LEVELS.slice(0,top+1).forEach(l=>{if(!state.unlocked.includes(l.id))state.unlocked.push(l.id)});
+ state.currentLevel=res.id;
+ state.placement={level:res.id,date:today(),score:s.score,total};
+ save();header();checkAchievements();
+ const rows=LEVELS.map(l=>{
+  const got=s.byLevel[l.id]||0, tested=s.questions.some((q,i)=>q.level===l.id&&i<s.index);
+  return `<div style="margin:9px 0"><div style="display:flex;justify-content:space-between"><b>${l.id}</b><span class="muted">${tested?got+"/"+PLACE_N:"non testé"}</span></div><div class="progress-bar" style="margin-top:4px"><i style="width:${tested?got/PLACE_N*100:0}%"></i></div></div>`;
+ }).join("");
+ $("main").innerHTML=`<div class="lesson-screen"><div class="card complete"><div class="big">${res.icon}</div><h1>Ton niveau : ${res.id}</h1><p class="muted">${esc(res.name)} — ${s.score}/${total} bonnes réponses.</p><div style="text-align:left;margin:18px 0">${rows}</div><div style="display:grid;gap:10px;max-width:320px;margin:0 auto"><button class="btn" data-go="learn">Commencer à ${res.id}</button><button class="btn gray" data-placement>Refaire le test</button></div></div></div>`;
+ session=null;bindDynamic();
+ setTimeout(()=>toast(`Niveau ${res.id} défini ✅`),500);
 }
 function finishLesson(){
  const s=session,key=s.id+"-"+s.i,passed=s.score>=PASS;

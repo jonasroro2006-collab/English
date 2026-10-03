@@ -1,5 +1,5 @@
 // Pense à changer le numéro de version à chaque mise à jour des fichiers.
-const CACHE="englishjonas-v3";
+const CACHE="englishjonas-v4";
 const ASSETS=["./","./index.html","./style.css","./data.js","./app.js","./manifest.json","./icon-192.png","./icon-512.png","./icon-maskable-512.png"];
 
 self.addEventListener("install",e=>{

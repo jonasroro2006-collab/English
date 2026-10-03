@@ -19,6 +19,10 @@ Application PWA d'apprentissage de l'anglais A1→C2, conçue pour fonctionner h
 3. Settings → Pages → Deploy from branch → main / root.
 4. Ouvrir l'adresse Pages et installer l'application depuis le navigateur.
 
+## Test de niveau
+
+Le menu « Test de niveau » pose 6 questions par niveau (A1 → C2), tirées de `data.js`. Un niveau est validé à 4/6. Le test s'arrête au premier niveau raté, débloque les niveaux validés et définit le niveau de départ.
+
 ## Ajouter ou modifier des questions
 
 Tout se fait dans `data.js`. Une question = `["énoncé","BONNE réponse","faux 1","faux 2","faux 3"]`.
@@ -27,7 +31,7 @@ La bonne réponse est toujours en 2e position : l'appli mélange les choix toute
 ## Mettre à jour l'application en ligne
 
 Après avoir modifié des fichiers, change le numéro dans `service-worker.js`
-(`englishjonas-v3` → `englishjonas-v4`) pour que les téléphones récupèrent la nouvelle version.
+(`englishjonas-v4` → `englishjonas-v5`) pour que les téléphones récupèrent la nouvelle version.
 
 ## Important
 
