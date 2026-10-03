@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#58cc02">
+<meta name="description" content="English Master — apprendre l'anglais du niveau débutant au niveau supérieur, hors ligne.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🇬🇧</text></svg>">
+<link rel="stylesheet" href="style.css">
+<title>English Master</title>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+    <div class="brand"><span class="brand-mark">E</span><span>English<span>Master</span></span></div>
+    <div class="top-stats">
+      <span title="Série">🔥 <b id="streakTop">0</b></span>
+      <span title="XP">⚡ <b id="xpTop">0</b></span>
+      <span title="Vies">❤️ <b id="heartsTop">5</b></span>
+    </div>
+  </header>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="side-head"><div class="brand"><span class="brand-mark">E</span> EnglishMaster</div><button class="icon-btn" id="closeMenu">×</button></div>
+    <nav>
+      <button data-screen="home" class="nav-item active">🏠 <span>Accueil</span></button>
+      <button data-screen="learn" class="nav-item">📚 <span>Apprendre</span></button>
+      <button data-screen="review" class="nav-item">🔁 <span>Révision</span></button>
+      <button data-screen="practice" class="nav-item">🎯 <span>Entraînement</span></button>
+      <button data-screen="stats" class="nav-item">📊 <span>Progression</span></button>
+      <button data-screen="achievements" class="nav-item">🏆 <span>Récompenses</span></button>
+      <button data-screen="dictionary" class="nav-item">📖 <span>Dictionnaire</span></button>
+      <button data-screen="settings" class="nav-item">⚙️ <span>Paramètres</span></button>
+    </nav>
+    <div class="offline-card"><span>●</span> Mode hors ligne actif<br><small>Tes données restent sur cet appareil.</small></div>
+  </aside>
+  <div id="overlay" class="overlay"></div>
+
+  <main id="main"></main>
+
+  <div id="toast" class="toast"></div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
